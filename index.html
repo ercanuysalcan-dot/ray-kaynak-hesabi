@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ray Kaynak Hesabı</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1240e0">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: saha aracı, sade, eldivenle bile okunur
+   IDEA: conta ölçü föyü — her satır bir conta, Sol Ray / Sağ Ray yan yana
+   PICTURE: conta kartlarının listesi, sonuç sarı kutuda büyük
+   COLOUR and TYPE: kobalt şerit, beyaz zemin, sinyal sarısı sonuç; Space Grotesk + Inter
+   LAYOUT: ayar şeridi, conta listesi, altta ekle / kopyala */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#0a0d18);--ink:light-dark(#0b0f1a,#e8ecf7);--mut:light-dark(#566079,#9aa5c0);
+--zone:light-dark(#eef2ff,#141a2e);--line:light-dark(#d4dbf0,#263055);--cob:#1240e0;--acc:#ffc400;--lnk:light-dark(#1240e0,#8fa8ff)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
+header{background:var(--cob);color:#fff;padding:16px max(5vw,14px)}
+header h1{margin:0;font:700 clamp(24px,5vw,32px)/1.1 "Space Grotesk",sans-serif}
+header p{margin:4px 0 0;opacity:.85;font-size:14px}
+main{max-width:900px;margin:0 auto;padding:14px max(3vw,10px) 40px}
+.set{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--zone);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.set label{font-weight:600;font-size:14px}
+label{display:block;font-size:13px;font-weight:600;color:var(--mut);margin-bottom:3px}
+.in{display:flex;align-items:center;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:0 8px}
+.in:focus-within{border-color:var(--cob);outline:2px solid color-mix(in srgb,var(--cob) 35%,transparent)}
+.in input{flex:1;border:0;background:none;color:var(--ink);font:600 17px Inter,sans-serif;height:44px;width:100%}
+.in input:focus{outline:none}
+.in span{color:var(--mut);font-size:14px}
+.set .in{width:120px}
+.tip{flex-basis:100%;font-size:14px;font-weight:600}
+.tip b{background:var(--acc);color:#111;padding:1px 6px;border-radius:5px}
+.c{border:1.5px solid var(--line);border-radius:14px;margin-bottom:14px;overflow:hidden}
+.ch{display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:var(--bg);padding:6px 6px 6px 14px}
+.ch h2{margin:0;font:700 19px "Space Grotesk",sans-serif}
+.del{background:none;border:0;color:inherit;opacity:.75;font:600 14px Inter,sans-serif;min-height:40px;padding:0 10px;cursor:pointer}
+.cols{display:grid;grid-template-columns:1fr 1fr}
+.rl{padding:10px;display:grid;gap:8px}
+.rl+.rl{border-left:1.5px solid var(--line)}
+.rl h3{margin:0;font:700 16px "Space Grotesk",sans-serif}
+.res{background:var(--acc);color:#111;border-radius:8px;padding:6px 10px}
+.res small{display:block;font-size:12px;font-weight:600}
+.own{font-size:13px;font-weight:600}
+.res b{font:700 24px "Space Grotesk",sans-serif;white-space:nowrap}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button.p,button.o{font:600 15px Inter,sans-serif;min-height:44px;padding:0 18px;border-radius:10px;border:1.5px solid var(--cob);background:var(--cob);color:#fff;cursor:pointer}
+button.o{background:none;color:var(--lnk);border-color:var(--lnk)}
+button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+#msg{font-size:14px;color:var(--mut)}
+.f{font-size:13px;color:var(--mut);margin-top:16px}
+</style>
+</head>
+<body>
+<header>
+<h1>Ray Kaynak Hesabı</h1>
+<p>Makine kaynağı · conta listesi</p>
+</header>
+<main>
+<div class="set">
+<label for="yp">Eritme payı (ön ray)</label>
+<div class="in"><input id="yp" type="number" inputmode="decimal" value="3"><span>cm</span></div>
+<label for="tr">Travers arası (iki travers kenarı arası)</label>
+<div class="in"><input id="tr" type="number" inputmode="decimal" placeholder="örn. 35"><span>cm</span></div>
+<div class="tip" id="tip">Kaynak arka rayın ucunda oluşur. Eritme ön raydan olur.</div>
+</div>
+
+<div id="list"></div>
+
+<div class="bar">
+<button class="p" id="add">+ Conta ekle</button>
+<button class="o" id="copy">Listeyi kopyala</button>
+<button class="o" id="clr">Hepsini sil</button>
+<span id="msg" role="status"></span>
+</div>
+
+<p class="f"><b>Toplam çekme</b> = Conta boşluğu + Kesilen ray + eritme payı (ön raydan)<br>Kaynak arka rayın ucunda oluşur. Arka ray ucunu iki travers arasının ortasına ayarlayın.</p>
+</main>
+<script>
+{
+const $=id=>document.getElementById(id);
+const K='rayKaynakConta';
+let rows=[];
+try{const d=JSON.parse(localStorage.getItem(K)||'null');if(d){rows=d.rows||[];if(d.yp!=null)$('yp').value=d.yp;if(d.tr!=null)$('tr').value=d.tr}}catch(e){}
+if(!rows.length) rows=[blank()];
+function blank(){return{sol:{cb:'',kr:''},sag:{cb:'',kr:''}}}
+const n=v=>{const x=parseFloat(String(v).replace(',','.'));return isFinite(x)?x:0};
+const f=v=>`${Math.round(v*10)/10}`.replace('.',',')+' cm';
+const yp=()=>n($('yp').value);
+const res=s=>(s.cb===''&&s.kr==='')?null:n(s.cb)+n(s.kr)+yp();
+const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function side(i,k,t){const s=rows[i][k],r=res(s);return `
+<div class="rl">
+<h3>${t}</h3>
+<div><label for="c${i}${k}cb">Conta boşluğu</label><div class="in"><input id="c${i}${k}cb" data-i="${i}" data-k="${k}" data-f="cb" type="number" inputmode="decimal" placeholder="0" value="${esc(s.cb)}"><span>cm</span></div></div>
+<div><label for="c${i}${k}kr">Kesilen ray</label><div class="in"><input id="c${i}${k}kr" data-i="${i}" data-k="${k}" data-f="kr" type="number" inputmode="decimal" placeholder="0" value="${esc(s.kr)}"><span>cm</span></div></div>
+<div class="res"><small>${i?`Toplam (Conta 1–${i+1})`:'Toplam çekme'}</small><b id="r${i}${k}">—</b><div class="own" id="o${i}${k}"></div></div>
+</div>`}
+
+function draw(){
+  $('list').innerHTML=rows.map((_,i)=>`
+<section class="c">
+<div class="ch"><h2>Conta ${i+1}</h2>${rows.length>1?`<button class="del" data-del="${i}" aria-label="Conta ${i+1} sil">Sil</button>`:''}</div>
+<div class="cols">${side(i,'sol','Sol Ray')}${side(i,'sag','Sağ Ray')}</div>
+</section>`).join('');
+}
+function cum(i,k){let t=0;for(let j=0;j<=i;j++){const r=res(rows[j][k]);if(r!=null)t+=r}return t}
+function upd(){rows.forEach((row,i)=>['sol','sag'].forEach(k=>{const r=res(row[k]);$('r'+i+k).textContent=r==null?'—':f(cum(i,k));$('o'+i+k).textContent=(i&&r!=null)?`Bu conta: ${f(r)}`:''}))}
+function save(){try{localStorage.setItem(K,JSON.stringify({yp:$('yp').value,tr:$('tr').value,rows}))}catch(e){}}
+
+$('list').addEventListener('input',e=>{const t=e.target;if(!t.dataset.f)return;rows[t.dataset.i][t.dataset.k][t.dataset.f]=t.value;upd();save()});
+$('list').addEventListener('click',e=>{const d=e.target.dataset.del;if(d==null)return;rows.splice(+d,1);draw();upd();save();$('msg').textContent='Conta silindi'});
+$('yp').addEventListener('input',()=>{upd();save()});
+$('tr').addEventListener('input',()=>{tip();save()});
+function tip(){const c=n($('tr').value);$('tip').innerHTML=c>0?`Arka ray ucu her iki traversten <b>${f(c/2)}</b> mesafede olmalı. Eritme ön raydan olur.`:'Kaynak arka rayın ucunda oluşur. Eritme ön raydan olur.'}
+$('add').addEventListener('click',()=>{rows.push(blank());draw();upd();save();const i=rows.length-1;$('c'+i+'solcb').focus();$('msg').textContent=''});
+$('clr').addEventListener('click',()=>{const b=$('clr');if(b.dataset.ok){rows=[blank()];draw();upd();save();b.textContent='Hepsini sil';delete b.dataset.ok;$('msg').textContent='Liste temizlendi'}else{b.dataset.ok=1;b.textContent='Emin misiniz? Tekrar basın'}});
+$('copy').addEventListener('click',async()=>{
+  const t=rows.map((row,i)=>{
+    const p=k=>{const s=row[k],r=res(s);return r==null?'—':`boşluk ${f(n(s.cb))}, kesilen ${f(n(s.kr))} → bu conta ${f(r)}, toplam ${f(cum(i,k))}`};
+    return `Conta ${i+1}\n  Sol Ray: ${p('sol')}\n  Sağ Ray: ${p('sag')}`}).join('\n');
+  try{await navigator.clipboard.writeText(`Eritme payı (ön ray): ${f(yp())}\n`+(n($('tr').value)>0?`Arka ray ucu traversten: ${f(n($('tr').value)/2)}\n`:'')+t);$('msg').textContent='Kopyalandı'}catch(e){$('msg').textContent='Kopyalanamadı'}
+});
+draw();upd();tip();
+}
+</script>
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
+</script>
+</body>
+</html>
