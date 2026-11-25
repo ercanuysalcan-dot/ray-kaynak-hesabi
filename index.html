@@ -133,6 +133,7 @@ draw();upd();tip();
 }
 </script>
 <script>
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 </script>
 </body>
